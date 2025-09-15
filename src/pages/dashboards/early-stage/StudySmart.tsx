@@ -1,14 +1,22 @@
-import { useState } from "react";
-import { Target, Clock, BookOpen, Brain, Calendar, CheckCircle, Star, Timer, Award } from "lucide-react";
+import React, { useState } from "react";
+import { Target, Clock, BookOpen, Brain, Calendar, CheckCircle, Star, Timer, Award, Play, Pause, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import DashboardLayout from "@/components/DashboardLayout";
 
 const StudySmart = () => {
   const [selectedTechnique, setSelectedTechnique] = useState<string | null>(null);
+  const [showPomodoroPopup, setShowPomodoroPopup] = useState(false);
+  const [pomodoroSession, setPomodoroSession] = useState({
+    timeLeft: 25 * 60, // 25 minutes in seconds
+    isActive: false,
+    isBreak: false,
+    sessionCount: 0
+  });
 
   const studyTechniques = [
     {
@@ -227,8 +235,28 @@ const StudySmart = () => {
                         </div>
                       )}
                       
-                      <Button className="w-full" variant={technique.completed ? "outline" : "default"}>
-                        {technique.completed ? "Practice Again" : "Start Learning"}
+                      <Button 
+                        className="w-full" 
+                        variant={technique.completed ? "outline" : "default"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (technique.id === "pomodoro") {
+                            if (selectedTechnique === technique.id) {
+                              // If already expanded, start the Pomodoro session
+                              setShowPomodoroPopup(true);
+                            } else {
+                              // If not expanded, expand the section
+                              setSelectedTechnique(technique.id);
+                            }
+                          }
+                        }}
+                      >
+                        {technique.completed && technique.id === "pomodoro" && selectedTechnique === technique.id 
+                          ? "Start" 
+                          : technique.completed 
+                          ? "Practice Again" 
+                          : "Start Learning"
+                        }
                       </Button>
                     </div>
                   </CardContent>
@@ -354,8 +382,161 @@ const StudySmart = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Pomodoro Practice Popup */}
+        <Dialog open={showPomodoroPopup} onOpenChange={setShowPomodoroPopup}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Timer className="w-5 h-5 text-red-500" />
+                Pomodoro Session
+              </DialogTitle>
+              <DialogDescription>
+                {pomodoroSession.isBreak ? "Take a short break!" : "Focus time - stay concentrated!"}
+              </DialogDescription>
+            </DialogHeader>
+            <PomodoroTimer 
+              session={pomodoroSession}
+              setSession={setPomodoroSession}
+              onClose={() => setShowPomodoroPopup(false)}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
+  );
+};
+
+// Pomodoro Timer Component
+const PomodoroTimer = ({ session, setSession, onClose }) => {
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const toggleTimer = () => {
+    setSession(prev => ({ ...prev, isActive: !prev.isActive }));
+  };
+
+  const resetTimer = () => {
+    setSession(prev => ({
+      ...prev,
+      timeLeft: prev.isBreak ? 5 * 60 : 25 * 60,
+      isActive: false
+    }));
+  };
+
+  const skipSession = () => {
+    if (session.isBreak) {
+      // End break, start new work session
+      setSession(prev => ({
+        ...prev,
+        timeLeft: 25 * 60,
+        isBreak: false,
+        isActive: false
+      }));
+    } else {
+      // End work session, start break
+      const newSessionCount = session.sessionCount + 1;
+      const isLongBreak = newSessionCount % 4 === 0;
+      setSession(prev => ({
+        ...prev,
+        timeLeft: isLongBreak ? 15 * 60 : 5 * 60,
+        isBreak: true,
+        isActive: false,
+        sessionCount: newSessionCount
+      }));
+    }
+  };
+
+  // Timer effect
+  React.useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (session.isActive && session.timeLeft > 0) {
+      interval = setInterval(() => {
+        setSession(prev => ({ ...prev, timeLeft: prev.timeLeft - 1 }));
+      }, 1000);
+    } else if (session.timeLeft === 0) {
+      // Auto-switch to break or work
+      skipSession();
+    }
+
+    return () => clearInterval(interval);
+  }, [session.isActive, session.timeLeft]);
+
+  const progress = session.isBreak 
+    ? ((5 * 60 - session.timeLeft) / (5 * 60)) * 100
+    : ((25 * 60 - session.timeLeft) / (25 * 60)) * 100;
+
+  return (
+    <div className="space-y-6 py-4">
+      {/* Timer Display */}
+      <div className="text-center">
+        <div className="text-6xl font-mono font-bold text-primary mb-2">
+          {formatTime(session.timeLeft)}
+        </div>
+        <div className="text-sm text-muted-foreground">
+          Session {session.sessionCount + 1} • {session.isBreak ? 'Break Time' : 'Focus Time'}
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="space-y-2">
+        <Progress value={progress} className="h-2" />
+        <div className="text-xs text-center text-muted-foreground">
+          {session.isBreak ? 'Break Progress' : 'Focus Progress'}
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="flex justify-center gap-3">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={toggleTimer}
+          className="flex items-center gap-2"
+        >
+          {session.isActive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+          {session.isActive ? 'Pause' : 'Start'}
+        </Button>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={resetTimer}
+          className="flex items-center gap-2"
+        >
+          <RotateCcw className="w-4 h-4" />
+          Reset
+        </Button>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={skipSession}
+          className="flex items-center gap-2"
+        >
+          Skip
+        </Button>
+      </div>
+
+      {/* Session Stats */}
+      <div className="text-center text-sm text-muted-foreground">
+        <div>Completed Sessions: {session.sessionCount}</div>
+        <div className="mt-2">
+          Next: {session.isBreak ? 'Focus Session' : 'Break Time'}
+        </div>
+      </div>
+
+      {/* Close Button */}
+      <div className="text-center pt-2">
+        <Button variant="ghost" size="sm" onClick={onClose}>
+          End Session
+        </Button>
+      </div>
+    </div>
   );
 };
 

@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -31,6 +31,7 @@ import ProgressAnalytics from "./pages/dashboards/decision-making/ProgressAnalyt
 // College Admission Dashboard Components
 import CollegeComparison from "./pages/dashboards/college-admission/CollegeComparison";
 import CourseMatcher from "./pages/dashboards/college-admission/CourseMatcher";
+import CourseDetailTree from "./pages/dashboards/college-admission/CourseDetailTree";
 import ROICalculator from "./pages/dashboards/college-admission/ROICalculator";
 import WhatIfSimulator from "./pages/dashboards/college-admission/WhatIfSimulator";
 import Scholarships from "./pages/dashboards/college-admission/Scholarships";
@@ -45,6 +46,11 @@ import ProjectsInternships from "./pages/dashboards/skill-development/ProjectsIn
 import SkillTraining from "./pages/dashboards/skill-development/SkillTraining";
 import InterviewPrep from "./pages/dashboards/skill-development/InterviewPrep";
 import PlacementKit from "./pages/dashboards/skill-development/PlacementKit";
+import MockTestPage from "./Test/jeemain"; // Import jeemain.tsx
+import NEETTestPage from './Test/neet';
+import JEEAdvancedTestPage from './Test/jeeadvanced';
+import CUETTestPage from './Test/cuet';
+import CLATTestPage from './Test/clat';
 
 const queryClient = new QueryClient();
 
@@ -53,7 +59,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <Router>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
@@ -81,6 +87,7 @@ const App = () => (
           <Route path="/dashboard/college-admission" element={<CollegeAdmissionDashboard />} />
           <Route path="/dashboard/college-admission/compare" element={<CollegeComparison />} />
           <Route path="/dashboard/college-admission/matcher" element={<CourseMatcher />} />
+          <Route path="/dashboard/college-admission/course-tree/:courseId" element={<CourseDetailTree />} />
           <Route path="/dashboard/college-admission/roi" element={<ROICalculator />} />
           <Route path="/dashboard/college-admission/simulator" element={<WhatIfSimulator />} />
           <Route path="/dashboard/college-admission/scholarships" element={<Scholarships />} />
@@ -97,10 +104,17 @@ const App = () => (
           <Route path="/dashboard/skill-development/interview-prep" element={<InterviewPrep />} />
           <Route path="/dashboard/skill-development/placement-kit" element={<PlacementKit />} />
           
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          {/* Mock Test Routes */}
+          <Route path="/jeemain" element={<MockTestPage />} />
+          <Route path="/neet" element={<NEETTestPage />} />
+          <Route path="/jeeadvanced" element={<JEEAdvancedTestPage />} />
+          <Route path="/cuet" element={<CUETTestPage />} />
+          <Route path="/clat" element={<CLATTestPage />} />
+          
+          {/* Fallback Route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </BrowserRouter>
+      </Router>
     </TooltipProvider>
   </QueryClientProvider>
 );

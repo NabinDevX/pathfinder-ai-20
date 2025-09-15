@@ -1,13 +1,18 @@
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Target, BookOpen, Users, Calculator, Award, TrendingUp, Brain, Calendar, Clock, AlertCircle, CheckCircle, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
+// Animation library
+import { motion, AnimatePresence } from "framer-motion";
 
 const DecisionMakingDashboard = () => {
   const navigate = useNavigate();
+  const [deadlines, setDeadlines] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const mainFeatures = [
     {
@@ -89,29 +94,41 @@ const DecisionMakingDashboard = () => {
     { exam: "CLAT", progress: 45, color: "bg-orange-500", nextTest: "Legal Reasoning", rank: "National: 5,670" }
   ];
 
-  const upcomingDeadlines = [
-    {
-      title: "JEE Main Registration",
-      date: "Dec 28, 2024",
-      timeLeft: "3 days",
-      priority: "high",
-      status: "urgent"
-    },
-    {
-      title: "NEET Application",
-      date: "Jan 15, 2025",
-      timeLeft: "21 days",
-      priority: "medium",
-      status: "upcoming"
-    },
-    {
-      title: "College Counselling",
-      date: "Feb 5, 2025",
-      timeLeft: "42 days",
-      priority: "low",
-      status: "planned"
-    }
-  ];
+  // --- Real-time deadlines state ---
+  useEffect(() => {
+    // Fetch deadlines from backend API
+    fetch("http://localhost:3001/api/deadlines")
+      .then((res) => res.json())
+      .then((data) => {
+        const today = new Date();
+        const formatted = data.map((item) => {
+          const deadlineDate = new Date(item.date);
+          const diffTime = deadlineDate.getTime() - today.getTime();
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          let status = "upcoming";
+          if (diffDays < 0) status = "expired";
+          else if (diffDays === 0) status = "today";
+          return {
+            ...item,
+            status,
+            timeLeft:
+              status === "expired"
+                ? "Expired"
+                : status === "today"
+                ? "Today"
+                : `${diffDays} days left`,
+            formattedDate: deadlineDate.toLocaleDateString("en-IN", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            }),
+          };
+        });
+        setDeadlines(formatted);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
 
   const recentAchievements = [
     { title: "Mock Test Champion", score: "95%", subject: "Physics", icon: Trophy },
@@ -257,24 +274,40 @@ const DecisionMakingDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {upcomingDeadlines.map((deadline, index) => (
-                    <div key={index} className={`p-3 rounded-lg border ${
-                      deadline.priority === 'high' ? 'bg-red-500/10 border-red-500/30' :
-                      deadline.priority === 'medium' ? 'bg-yellow-500/10 border-yellow-500/30' :
-                      'bg-blue-500/10 border-blue-500/30'
-                    }`}>
-                      <div className="flex justify-between items-start mb-1">
-                        <p className="font-medium text-sm">{deadline.title}</p>
-                        <Badge 
-                          variant={deadline.priority === 'high' ? 'destructive' : 'outline'}
-                          className="text-xs"
+                  {loading ? (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      style={{ marginTop: "2rem", fontSize: "1.2rem" }}
+                    >
+                      Loading deadlines...
+                    </motion.div>
+                  ) : deadlines.length === 0 ? (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      style={{ marginTop: "2rem", fontSize: "1.2rem" }}
+                    >
+                      No deadlines found.
+                    </motion.div>
+                  ) : (
+                    <ul className="space-y-4">
+                      {deadlines.map((dl, idx) => (
+                        <li
+                          key={idx}
+                          className="flex items-center justify-between p-4 rounded-lg shadow-md bg-blue-100 border border-blue-300"
                         >
-                          {deadline.timeLeft}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">{deadline.date}</p>
-                    </div>
-                  ))}
+                          <div>
+                            <p className="font-semibold text-lg text-blue-900">{dl.name}</p>
+                            <p className="text-sm text-blue-700">{dl.formattedDate}</p>
+                          </div>
+                          <div className="px-3 py-1 rounded-full text-sm font-medium bg-blue-500 text-white">
+                            {dl.timeLeft}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </CardContent>
             </Card>

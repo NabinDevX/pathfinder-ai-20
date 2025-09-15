@@ -139,11 +139,6 @@ const EarlyStageDashboard = () => {
                       </CardHeader>
                       <CardContent className="pt-0">
                         <div className="space-y-3">
-                          <div className="flex justify-between text-sm">
-                            <span>Progress</span>
-                            <span>{feature.progress}%</span>
-                          </div>
-                          <Progress value={feature.progress} className="h-2" />
                           <Button 
                             className="w-full btn-secondary group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
                             onClick={() => navigate(feature.path)}
